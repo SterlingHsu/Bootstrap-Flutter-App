@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "483742956620",
+    "project_id": "supertracker-4e93e",
+    "storage_bucket": "supertracker-4e93e.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:483742956620:android:992f29e1480158449dc8e9",
+        "android_client_info": {
+          "package_name": "com.google.supertracker"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBGRncVPChlR8gyEMlXRpXZDcOeY5zf0c8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
