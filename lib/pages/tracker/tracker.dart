@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class TrackerScreen extends StatefulWidget {
   const TrackerScreen({super.key});
@@ -9,6 +10,26 @@ class TrackerScreen extends StatefulWidget {
 
 class _TrackerScreenState extends State<TrackerScreen> {
   final List<WorkoutDay> workoutDays = [];
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadWorkouts();
+  }
+
+  void _loadWorkouts() async {
+    QuerySnapshot querySnapshot = await _firestore.collection('workouts').get();
+    setState(() {
+      workoutDays.clear();
+      for (var doc in querySnapshot.docs) {
+        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+        WorkoutDay workoutDay = WorkoutDay.fromMap(data);
+        workoutDay.id = doc.id;
+        workoutDays.add(workoutDay);
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,13 +58,17 @@ class _TrackerScreenState extends State<TrackerScreen> {
     );
   }
 
-  void _addNewDay() {
+  void _addNewDay() async {
+    WorkoutDay newWorkoutDay = WorkoutDay(date: DateTime.now(), exercises: []);
+    DocumentReference docRef = await _firestore.collection('workouts').add(newWorkoutDay.toMap());
+    newWorkoutDay.id = docRef.id;
     setState(() {
-      workoutDays.add(WorkoutDay(date: DateTime.now(), exercises: []));
+      workoutDays.add(newWorkoutDay);
     });
   }
 
-  void _deleteWorkoutDay(int index) {
+  void _deleteWorkoutDay(int index) async {
+    await _firestore.collection('workouts').doc(workoutDays[index].id).delete();
     setState(() {
       workoutDays.removeAt(index);
     });
@@ -51,10 +76,25 @@ class _TrackerScreenState extends State<TrackerScreen> {
 }
 
 class WorkoutDay {
+  String? id;
   final DateTime date;
   final List<Exercise> exercises;
 
-  WorkoutDay({required this.date, required this.exercises});
+  WorkoutDay({this.id, required this.date, required this.exercises});
+
+  Map<String, dynamic> toMap() {
+    return {
+      'date': date.toIso8601String(),
+      'exercises': exercises.map((e) => e.toMap()).toList(),
+    };
+  }
+
+  static WorkoutDay fromMap(Map<String, dynamic> map) {
+    return WorkoutDay(
+      date: DateTime.parse(map['date']),
+      exercises: (map['exercises'] as List).map((e) => Exercise.fromMap(e)).toList(),
+    );
+  }
 }
 
 class Exercise {
@@ -69,6 +109,24 @@ class Exercise {
     required this.reps,
     required this.weight,
   });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'name': name,
+      'sets': sets,
+      'reps': reps,
+      'weight': weight,
+    };
+  }
+
+  static Exercise fromMap(Map<String, dynamic> map) {
+    return Exercise(
+      name: map['name'],
+      sets: map['sets'],
+      reps: map['reps'],
+      weight: map['weight'],
+    );
+  }
 }
 
 class WorkoutDayCard extends StatefulWidget {
@@ -86,6 +144,8 @@ class WorkoutDayCard extends StatefulWidget {
 }
 
 class _WorkoutDayCardState extends State<WorkoutDayCard> {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -166,16 +226,16 @@ class _WorkoutDayCardState extends State<WorkoutDayCard> {
               child: const Text('Add'),
               onPressed: () {
                 if (name.isNotEmpty && sets > 0 && reps > 0) {
+                  Exercise newExercise = Exercise(
+                    name: name,
+                    sets: sets,
+                    reps: reps,
+                    weight: weight,
+                  );
                   setState(() {
-                    widget.workoutDay.exercises.add(
-                      Exercise(
-                        name: name,
-                        sets: sets,
-                        reps: reps,
-                        weight: weight,
-                      ),
-                    );
+                    widget.workoutDay.exercises.add(newExercise);
                   });
+                  _updateWorkoutInFirestore();
                   Navigator.of(context).pop();
                 }
               },
@@ -190,6 +250,14 @@ class _WorkoutDayCardState extends State<WorkoutDayCard> {
     setState(() {
       widget.workoutDay.exercises.removeAt(index);
     });
+    _updateWorkoutInFirestore();
+  }
+
+  void _updateWorkoutInFirestore() {
+    _firestore
+        .collection('workouts')
+        .doc(widget.workoutDay.id)
+        .update(widget.workoutDay.toMap());
   }
 }
 
