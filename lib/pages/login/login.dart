@@ -44,7 +44,7 @@ class Login extends StatelessWidget {
             children: [
               const Center(
                 child: Text(
-                  'Hello Again',
+                  'Welcome!',
                   style: TextStyle(
                     color: Colors.black,
                     fontWeight: FontWeight.bold,
